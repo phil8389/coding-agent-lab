@@ -13,7 +13,10 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     repair = commands.add_parser("repair", help="Repair a supplied evaluation copy")
     repair.add_argument("project", help="Evaluation path, such as evals/arithmetic")
-    repair.add_argument("--provider", choices=["scripted"], default="scripted")
+    repair.add_argument("--provider", choices=["scripted", "ollama"], default="scripted")
+    repair.add_argument("--model", help="Ollama model (default: OLLAMA_MODEL or qwen2.5-coder:7b)")
+    repair.add_argument("--temperature", type=float, default=0.0,
+                        help="Ollama sampling temperature (default: 0.0)")
     commands.add_parser("ui", help="Start the local repair interface")
     args = parser.parse_args(argv)
 
@@ -24,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     try:
-        result = build_repair_service(args.provider).run(args.project)
+        result = build_repair_service(args.provider, args.model, args.temperature).run(args.project)
     except (ValueError, OSError) as exc:
         print(f"Repair failed: {exc}", file=sys.stderr)
         return 1

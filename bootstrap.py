@@ -1,8 +1,9 @@
-"""Compose the scripted client, safe tools, agent, and repair service."""
+"""Compose the selected chat client, safe tools, agent, and repair service."""
 
 import json
 from pathlib import Path
 
+from adapters.models.ollama import OllamaClient
 from adapters.models.scripted import ScriptedClient
 from adapters.sandbox.repair_tools import RepairTools
 from adapters.sandbox.runner import create_workspace
@@ -58,15 +59,17 @@ def scripted_replies(case: str, workspace: Path) -> list[str]:
     return [json.dumps(action) for action in actions]
 
 
-def build_repair_service(provider: str = "scripted") -> RepairService:
+def build_repair_service(provider: str = "scripted", model: str | None = None,
+                         temperature: float = 0.0) -> RepairService:
     """Wire a fresh client and Docker-backed tools for each repair."""
-    if provider != "scripted":
+    if provider not in {"scripted", "ollama"}:
         raise ValueError(f"Unsupported provider: {provider}")
 
     def create_agent(case: str, workspace: Path) -> RepairAgent:
-        """Bind this attempt's script and tools to its workspace."""
+        """Bind this attempt's client and tools to its workspace."""
         tools = RepairTools(workspace)
-        client = ScriptedClient(scripted_replies(case, workspace))
+        client = (ScriptedClient(scripted_replies(case, workspace))
+                  if provider == "scripted" else OllamaClient(model, temperature))
         return RepairAgent(client, tools)
 
     return RepairService(create_workspace, create_agent)
