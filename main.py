@@ -14,7 +14,14 @@ def main(argv: list[str] | None = None) -> int:
     repair = commands.add_parser("repair", help="Repair a supplied evaluation copy")
     repair.add_argument("project", help="Evaluation path, such as evals/arithmetic")
     repair.add_argument("--provider", choices=["scripted"], default="scripted")
+    commands.add_parser("ui", help="Start the local repair interface")
     args = parser.parse_args(argv)
+
+    if args.command == "ui":
+        from adapters.gradio_ui import create_demo
+
+        create_demo().launch(server_name="127.0.0.1", share=False)
+        return 0
 
     try:
         result = build_repair_service(args.provider).run(args.project)
